@@ -73,4 +73,19 @@ function start_app(){
     window.token.prepare_contract().then(console.log).catch(console.log);
 
 //   ready for app
+
+    //example :
+    get_time_locked_contract_size().then(console.log).catch(console.log);
+}
+
+//sample implementation of abi call to promise function
+function get_time_locked_contract_size(){
+    return new Promise((resolve, reject)=>{
+        //todo implement
+        let wallet = $("#wallet").val();
+        window.token.instance.get_time_locked_contract_size(wallet, (error, result)=>{
+            if(error) reject();
+            else resolve(result);
+        });
+    })
 }
