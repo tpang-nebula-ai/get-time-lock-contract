@@ -69,14 +69,21 @@ function start_app(){
     window.crowdsale = new Contract(web3, "Nebula Crowdsale", crowdsale_address, crowdsale_abi);
     window.token = new Contract(web3, "Nebula Token", token_address, token_abi);
 
-    window.crowdsale.prepare_contract().then(console.log).catch(console.log);
-    window.token.prepare_contract().then(console.log).catch(console.log);
+    window.crowdsale.prepare_contract()
+        .then(()=>{
+            return window.token.prepare_contract();
+        })
+        .then(()=>{
+            return get_time_locked_contract_size();
+        })
+        .then(console.log)
+        .catch(console.log);
+
 
 
 //   ready for app
 
     //example :
-    get_time_locked_contract_size().then(console.log).catch(console.log);
 }
 
 //sample implementation of abi call to promise function
@@ -84,9 +91,9 @@ function get_time_locked_contract_size(){
     return new Promise((resolve, reject)=>{
         //todo implement
         let wallet = $("#wallet").val();
-        window.token.instance.get_time_locked_contract_size(wallet, (error, result)=>{
+        window.token.instance.get_time_locked_contract_size(web3.eth.defaultAccount, (error, result)=>{
             if(error) reject();
-            else resolve(result);
+            else resolve(Number(result));
         });
     })
 }
