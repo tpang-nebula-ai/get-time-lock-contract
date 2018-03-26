@@ -6,6 +6,7 @@ const vesting_abi = "./abi/Vesting.json";
 const crowdsale_address = "0x680775f25a1323a7b88cc72847d339c9bff01b93";
 const token_address = "0x0eb2a797bb556be1898b7a5bfed2b9614819e4f7";
 
+const wallet = "0x564286362092d8e7936f0549571a803b203aaced";
 
 class Contract {
 
@@ -90,8 +91,8 @@ function start_app(){
 function get_time_locked_contract_size(){
     return new Promise((resolve, reject)=>{
         //todo implement
-        let wallet = $("#wallet").val();
-        window.token.instance.get_time_locked_contract_size(web3.eth.defaultAccount, (error, result)=>{
+        // let wallet = $("#wallet").val();
+        window.token.instance.get_time_locked_contract_size(wallet, (error, result)=>{
             if(error) reject();
             else resolve(Number(result));
         });
