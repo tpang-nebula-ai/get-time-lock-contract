@@ -6,13 +6,83 @@
     <script src="./js/jquery-3.3.1.min.js"></script>
     <script src="./js/web3js_min.js"></script>
     <script src="./js/contract.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>
+    <style>
+        *{magin:200; padding:200}
+        .BV{
+            width:400px;
+            height: 150px;
+            position:fixed;
+            background-color: ghostwhite;
+        }
+        .LST{
+            heigh:40px;
+            width:300px;
+            margin-left:20px
+        }
+        .inputBox{
+            height:30px;
+            width:200px;
+            margin-top:10px;
+            margin-left:100px;
+        }
+
+    </style>
 
 
 
 </head>
-<body>
+<body ng-app = "mainAPP">
 <div>
+    <div class = "BV" ng-controller="addressCtrl">
+        <div class = "inputBox">
+            Enter your Address
+            <br> <input type="text" ng-model="Address.p1">
+        </div>
 
+        <ul>
+            <li class = "LST">
+
+                <div ng-init = "show1 = true">
+                    click "show" to show the value &nbsp &nbsp
+                    <a href ng-click="show1 = !show1; show2 = true; show3 = true;"> show </a>
+                    <div ng-hide = "show1">
+                        {{Address.p1}}
+                    </div>
+                </div>
+            </li>
+
+            <li class = "LST">
+
+                <div ng-init = "show2 = true">
+                    click "show" to show the value &nbsp &nbsp
+                    <a href ng-click="show2 = !show2; show1 = true; show3 = true;"> show </a>
+                    <div ng-hide = "show2">
+                        2222
+                    </div>
+                </div>
+            </li>
+
+            <li class = "LST">
+
+                <div ng-init = "show3 = true">
+                    click "show" to show the value &nbsp &nbsp
+                    <a href ng-click="show3 = !show3; show1 = true; show2 = true;"> show </a>
+                    <div ng-hide = "show3">
+                        3333
+                    </div>
+                </div>
+            </li>
+
+        </ul>
+
+    </div>
 </div>
+<script>
+    var app = angular.module('mainAPP',[]);
+    app.controller('addressCtrl',function($scope){
+        $scope.Address
+    });
+</script>
 </body>
 </html>
