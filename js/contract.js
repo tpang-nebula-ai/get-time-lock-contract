@@ -6,6 +6,7 @@ const vesting_abi = "./abi/Vesting.json";
 const crowdsale_address = "0xbe0066cce26fa2c2bab8756e6d359425c38e741a";
 const token_address = "0xf427347bf90d1780b0b26359b42b7bc13448a286";
 
+const sample_wallet_address = "0x82A446fEf169325F490c09788400b55fA0948082";
 
 class Contract {
 
@@ -56,10 +57,11 @@ window.onload = function () {
     } else {
         window.web3 = new Web3(web3.currentProvider);
 
-        if (web3.eth.defaultAccount === undefined) {
-            // window.location.href = "./notice/notice_locked/index.html"
-            alert("@dev TO BE REMOVED : DOES NOT need to log in, If logged in, show default account in field");
-        } else start_app();
+        // if (web3.eth.defaultAccount === undefined) {
+        //     // window.location.href = "./notice/notice_locked/index.html"
+        //     alert("@dev TO BE REMOVED : DOES NOT need to log in, If logged in, show default account in field");
+        // } else
+        start_app();
     }
 };
 
@@ -74,11 +76,11 @@ function start_app(){
             return window.token_instance.prepare_contract();
         })
         .then(()=>{
-            return get_time_locked_contract_size(web3.eth.defaultAccount);
+            return get_time_locked_contract_size(sample_wallet_address);
         })
         .then(result => {
             console.log("number of time locked contract " + Number(result));
-            return get_all_time_locked_contract(web3.eth.defaultAccount);
+            return get_all_time_locked_contract(sample_wallet_address);
         })
         .then(result => {
             console.log(result);
@@ -144,11 +146,11 @@ function start_app(){
         })
         .then(result=>{
             console.log("Token Contract : "+result);
-            return whitelist(web3.eth.defaultAccount);
+            return whitelist(sample_wallet_address);
         })
         .then(result => {
             console.log("Default Account has been added to whitelisted : "+result);
-            return balance_of(web3.eth.defaultAccount);
+            return balance_of(sample_wallet_address);
         })
         .then(result => {
             console.log("Default Account has "+web3.fromWei(result,"ether")+" NBAI");
