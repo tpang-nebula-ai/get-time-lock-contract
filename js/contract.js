@@ -72,6 +72,7 @@ function start_app(){
     window.crowdsale.prepare_contract().then(console.log).catch(console.log);
     window.token.prepare_contract().then(console.log).catch(console.log);
 
+
 //   ready for app
 
     //example :
