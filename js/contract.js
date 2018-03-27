@@ -3,8 +3,8 @@ const token_abi = "./abi/NebulaToken.json";
 const time_locked_abi = "./abi/Timelock.json";
 const vesting_abi = "./abi/Vesting.json";
 
-const crowdsale_address = "0xbe0066cce26fa2c2bab8756e6d359425c38e741a";
-const token_address = "0xf427347bf90d1780b0b26359b42b7bc13448a286";
+const crowdsale_address = "0xefd5a35262d2e37b99bae27c694a16a85f8917ed";
+const token_address = "0x43c3a092cba82b47616fee8f0209c208f1a2455e";
 
 const sample_wallet_address = "0x82A446fEf169325F490c09788400b55fA0948082";
 
@@ -57,11 +57,14 @@ window.onload = function () {
     } else {
         window.web3 = new Web3(web3.currentProvider);
 
-        // if (web3.eth.defaultAccount === undefined) {
-        //     // window.location.href = "./notice/notice_locked/index.html"
-        //     alert("@dev TO BE REMOVED : DOES NOT need to log in, If logged in, show default account in field");
-        // } else
-        start_app();
+        if (web3.eth.defaultAccount === undefined) {
+            // window.location.href = "./notice/notice_locked/index.html"
+            alert("log in to metamask, If logged in, show default account in field");
+            $("#my_wallet").val(sample_wallet_address);
+        } else {
+            $("#my_wallet").val(web3.eth.defaultAccount);
+            start_app();
+        }
     }
 };
 
@@ -75,117 +78,241 @@ function start_app(){
         .then(()=>{
             return window.token_instance.prepare_contract();
         })
+        .then(() => {
+            console.log("Contracts ready");
+            return load_info();
+        })
         .then(()=>{
-            return get_time_locked_contract_size(sample_wallet_address);
+            console.log("Crowdsale related");
+            return whitelist($("#my_wallet").val());
         })
         .then(result => {
-            console.log("number of time locked contract " + Number(result));
-            return get_all_time_locked_contract(sample_wallet_address);
+            $("#whitelisted").html(result?"yes":"no");
+            return get_time_locked_contract_size($("#my_wallet").val());
         })
         .then(result => {
-            console.log(result);
-            return load_time_locked_contract(result[0]);
+            result = Number(result);
+            $("#lockedContract").html(result);
+            check_purchase_history();
         })
-        .then(instance => {
-            let _instance = instance;
-            console.log("Time locked contract at address "+instance.address+" has been loaded");
-            return time_locked_beneficiary(_instance)
-                .then(result => {
-                    console.log("Beneficiary is "+result);
-                    return time_locked_unlock_time(_instance);
-                })
-                .then(result => {
-                    console.log("Unlock time " + new Date(result * 1000));
-                    return time_locked_token_address(_instance);
-                })
-                .then(result=>{
-                    console.log("Token Address "+result);
-                    return release_one(_instance);
-                })
-                .then(result=>{
-                    console.log("Releasing the first contract");
-                    console.log(result);
-                    return wei_raised();
-                })
-                .catch(msg=>{
-                    console.log(msg);
-                    return wei_raised();
-                });
-        })
-        .then(result =>{
-            console.log("wei raised : "+Number(result));
-            return cap();
-        })
-        .then(result => {
-            console.log("Fund Raise Cap: "+Number(result));
-            return cap_reached();
-        })
-        .then(result => {
-            console.log("Fund Raise Cap Reached " + result);
-            return opening_time();
-        })
-        .then(result => {
-            console.log("Opening Time : "+new Date(result*1000));
-            return has_started();
-        })
-        .then(result => {
-            console.log("Started : " + result);
-            return closing_time();
-        })
-        .then(result => {
-            console.log("Closing Time : "+new Date(result*1000));
-            return has_closed();
-        })
-        .then(result => {
-            console.log("Closed : "+result);
-            return rate();
-        })
-        .then(result => {
-            console.log("Exchange Rate : "+result);
-            return token();
-        })
-        .then(result=>{
-            console.log("Token Contract : "+result);
-            return whitelist(sample_wallet_address);
-        })
-        .then(result => {
-            console.log("Default Account has been added to whitelisted : "+result);
-            return balance_of(sample_wallet_address);
-        })
-        .then(result => {
-            console.log("Default Account has "+web3.fromWei(result,"ether")+" NBAI");
-            return token_unlock_time();
-        })
-        .then(result => {
-            console.log("Token Unlock time : "+new Date(result*1000));
-            return total_supply();
-        })
-        .then(result => {
-            console.log("Total Minted Token : "+Number(result)+" NBAI");
-        })
-        // .then() ready for app
         .catch(console.log);
-
 }
 
 /**
+ * Time locked contract inquirer
+ * Can get any address, not needed to login!!
  *
+ * @returns {Promise<any>}
+ */
+function check_purchase_history(){
+    return new Promise((resolve,reject)=>{
+        $("#contract_list").empty();
+        return get_all_time_locked_contract($("#my_wallet").val())
+            .then(list=>{
+                return display_timelocked(list,0,"contract_list")
+                    .then(resolve)
+                    .catch(reject);
+            })
+            .catch(reject);
+    });
+}
+
+/**
+ * Helper function, should not need to call
+ * @param list
+ * @param index
+ * @param appendTo
+ * @returns {Promise<any>}
+ */
+function display_timelocked(list, index, appendTo){
+    return new Promise((resolve, reject) => {
+        let locked_contract = list[index];
+        let amount;
+        let _instance;
+        let beneficiary;
+        let unlock;
+        let unlockable = false;
+
+        balance_of(locked_contract)
+            .then(balance => {
+                amount = Number(web3.fromWei(balance, "ether"));
+                return load_time_locked_contract(locked_contract);
+            })
+            .then(instance => {
+                _instance = instance;
+                return time_locked_beneficiary(_instance);
+            })
+            .then(result => {
+                beneficiary = beneficiary === $("#my_wallet") ?  "Myself" : result;
+                return time_locked_unlock_time(_instance);
+            })
+            .then(time => {
+                unlock = new Date(Number(time) * 1000);
+                let now = new Date().getTime();
+                unlockable = now > unlock;
+                let id = "release"+index;
+                //todo example only
+                let element = "#"+appendTo;
+                let content = "<tr><td>" + (index+1) + "</td>" +
+                    "<td>" + locked_contract + "</td>" +
+                    "<td>" + beneficiary + "</td>" +
+                    "<td>" + amount + "</td>" +
+                    "<td>" + unlock + "</td>" +
+                "<td><button id='"+id+"'>Release</button></td></tr>";
+
+                $(element).append(content);
+                if(!unlockable) $("#"+id).prop("disabled", true);
+                $("#"+id).click(()=>{
+                    if(unlockable) release_one(_instance);
+                    else alert("Unlockable on "+unlock);
+                });
+
+                if(list.length-1 === index) {
+                    $(element).append("<button id='release_all'>Release All</button>");
+                    if(!unlockable) $("#release_all").prop("disabled", true);
+                    $("#release_all").click(()=>{
+                        if(unlockable) release_all(web3.eth.defaultAccount);
+                        else alert("Unlockable at "+unlock);
+                    });
+                    resolve();
+                }
+                else display_timelocked(list, index+1, appendTo).then(resolve).catch(reject);
+            })
+            .catch(reject);
+        });
+}
+
+/**
+ * Aggregated basic crowdsale information loader, todo modify for deploy
+ * @returns {Promise<any>}
+ */
+function load_info(){
+    return new Promise((resolve,reject)=>{
+        let cap_at = 0;
+        let pvt_max = 0;
+        let raised = 0;
+
+        opening_time().then(result=> {
+            $("#startAt").html(new Date(result * 1000));
+        }).catch(reject);
+        closing_time().then(result => $("#endAt").html(new Date(result*1000))).catch(reject);
+        has_started().then(result=>{
+            $("#started").html(result? "yes":"no")
+        }).catch(reject);
+        has_closed().then(result => {
+            $("#ended").html(result? "yes":"no")
+        });
+        cap()
+            .then(result => {
+                cap_at = web3.fromWei(result, "ether");
+                $("#capAt").html(cap_at + " Eth");
+                //todo can get balance of private sale account and add it to here
+                return wei_raised();
+            })
+            .then(result =>{
+                raised = web3.fromWei(result,"ether");
+                $("#raised").html(raised+" Eth");
+                $("#raise_progress").html(Math.floor(raised/cap_at*100)+"%");
+                return cap_reached();
+            })
+            .then(result => {
+                $("#cap_reached").html(result?"yes":"no");
+                return rate();
+            })
+            .then(result => {
+                $("#rate").html(Number(result)+" NBAI/Eth");
+                return token();
+            })
+            .then(result => {
+                $("#token_address").html(result);
+                return total_supply();
+            })
+            .then(result => {
+                $("#total_supply").html(web3.fromWei(result,"ether")+" NBAI");
+            })
+            .catch(reject);
+        resolve();
+    });
+}
+
+/**
+ * Purchase token function
+ */
+function purchase_token(){
+    let amount = web3.toWei(Number($("#buyAmount").val()),"ether");
+    let beneficiary = $("#my_wallet").val();
+    //todo check valid input !!!!
+    whitelist(beneficiary)
+        .then(result=>{
+            if(result){
+                if (amount !== 0){
+                    buy_token(amount, beneficiary)
+                        .then(tx_detail=>{
+                            console.log(tx_detail);
+                            $("purchase_info").append(
+                                "<tr><td>Mined at Block</td><td>"+Number(tx_detail.blockNumber)+"</td></tr>"
+                            );
+
+                            //todo Or just get the last one
+                            $("#contract_list").empty();
+                            return get_all_time_locked_contract($("#my_wallet").val());
+                        })
+                        .then(list => {
+                            return display_timelocked(list,0,"contract_list");
+                        })
+                        .catch(console.log);
+                }else{
+                    //todo
+                    alert("Enter purchase amount");
+                }
+            }else{
+                //todo
+                alert("Not yet whitelisted");
+            }
+        })
+        .catch(error=>{
+            //todo
+            alert("Blockchain error");
+            console.log(error);
+        });
+}
+
+/**
+ * Helper function for purchase_token(), should not need to be called directly
  * @returns {Promise<txHash>} todo to be confirmed
  */
-function buy_token(){
+function buy_token(amount, beneficiary=web3.eth.defaultAccount){
     return new Promise((resolve,reject)=>{
-        // let beneficiary = $("#beneficiary").val();//todo
-        // let amount = $("#purchase_amount").val();//todo
-        // let type = $("#purchase_type").val(); //ether or wei "string" //todo a drop down list of "ether" and "wei"
-        // if(type==="ether") amount = web3.toWei(amount,"ether");
-        let beneficiary = web3.eth.defaultAccount;
-        let amount = web3.toWei(2,"ether");
         window.crowdsale_instance.instance.buyTokens(beneficiary,{value:amount},(error, result)=>{
             if(error) reject();
-            else resolve(result);
+            else {
+                $("#purchase_info")
+                    .empty()
+                    .append("<td>Transaction Hash: </td><td>"+result+"</td>");
+                check_transaction(result).then(resolve).catch(reject);
+            }
         })
     })
 }
+function check_transaction(txHash){
+    return new Promise((resolve,reject)=>{
+        web3.eth.getTransaction(txHash, (error, result) => {
+            if(error) reject(error);
+            else {
+                let tx = result;
+                if (tx.blockNumber === null){
+                    console.log("Mining");
+                    setTimeout(()=>{
+                        check_transaction(txHash).then(resolve).catch(reject)},
+                        2500
+                    );
+                }else resolve(tx);
+            }
+        });
+    })
+
+}
+
 
 /**
  *
@@ -448,6 +575,7 @@ function load_time_locked_contract(address){
  * @returns {Promise<any>}
  */
 function release_one(timelocked){
+    debugger
     return new Promise((resolve,reject)=>{
         balance_of(timelocked.address)
             .then(balance => {
